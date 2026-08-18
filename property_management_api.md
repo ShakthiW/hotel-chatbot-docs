@@ -51,6 +51,10 @@ erDiagram
         string phone
         string email
         string website
+        string booking_slug
+        string booking_mode "external | integrated"
+        string preferred_booking_channel "direct | booking_com | agoda | expedia | other"
+        jsonb booking_destinations "Array of BookingDestinationItem"
         string check_in_time
         string check_out_time
         jsonb policies
@@ -74,6 +78,8 @@ erDiagram
         jsonb amenities
         numeric base_price
         string currency
+        text booking_url "Optional direct room landing URL"
+        jsonb booking_destinations "Room-level channel overrides"
         boolean is_active
         timestamp created_at
         timestamp updated_at
@@ -294,7 +300,29 @@ http://localhost:8080/api/v1
 * **HTTP Method**: `PUT`
 * **Path**: `/api/v1/properties/{id}/rooms/{roomId}`
 
-#### 5. Delete Room Type
+#### 5. Update Room Booking Destination Override
+* **HTTP Method**: `PUT`
+* **Path**: `/api/v1/properties/{id}/rooms/{roomId}/booking-destinations`
+* **Request Body**:
+```json
+{
+  "booking_url": "https://amanwella.com/book/ocean-view-suite",
+  "destinations": [
+    {
+      "id": "override-ovs",
+      "channel": "direct",
+      "name": "Ocean View Suite Direct Landing",
+      "url": "https://amanwella.com/book/ocean-view-suite",
+      "is_enabled": true,
+      "is_preferred": true,
+      "source": "manual",
+      "verification_status": "verified"
+    }
+  ]
+}
+```
+
+#### 6. Delete Room Type
 * **HTTP Method**: `DELETE`
 * **Path**: `/api/v1/properties/{id}/rooms/{roomId}`
 

@@ -177,55 +177,56 @@ The AI doesn't just return text. It returns structured `__UI__` payloads embedde
 
 | Card Component | Triggered By | What It Shows |
 |---|---|---|
-| **RoomCarouselUI** | `check_room_availability` tool | Room cards with size, bed type, view type, price, sensory description |
+| **RoomCarouselUI** | `check_room_availability` tool | Adaptive room cards with sensory descriptions, dynamic preferred channel CTA (`Book Direct`, `Book on Booking.com`, `Book on Agoda`), multi-channel popover dropdown, and outbound click tracking. |
+| **RoomDetailUI** | Room card expansion | High-resolution modal with complete sensory description, dimensions, view specs, verified badges, and dynamic booking actions. |
+| **RoomInquiryModal** | Fallback / Zero-link state | Direct concierge room inquiry modal pre-populating room code, requested stay dates, guest count, and special requests. |
 | **DiningOutletUI** | `get_outlet_details` tool | Restaurant/spa cards with cuisine, dress code, dietary tags, location |
 | **AttractionCardUI** | `get_destination_attractions` tool | Attraction cards with distance, transport, best time to visit, Google Maps link |
 | **ItineraryCardUI** | `generate_itinerary` tool | Multi-day timeline with activity cards per day, source badges, price info |
 | **ExperienceTimelineUI** | `get_experience_timeline` tool | Hour-by-hour resort timeline with crowd levels and sensory highlights |
-| **BookingHoldCardUI** | `create_room_hold` tool | Active hold confirmation with room, hold ID, 15-minute countdown |
+| **BookingHoldCardUI** | `create_room_hold` tool | Active hold confirmation with room, hold ID, 15-minute countdown (Integrated Mode) |
 | **PaymentCheckoutCardUI** | `generate_payment_link` tool | Direct checkout link, total amount, QR code, expiry |
 | **TimelineJourneyCardUI** | Custom journey flows | Visual journey progression across the guest's stay narrative |
 | **ThinkingAccordion** | Model thinking mode | Collapsible reasoning trace for transparency |
 
 ### How It Works Technically
-Tool responses include a `__UI__${JSON.stringify(payload)}__UI__` sentinel. The frontend's `ChatSimulator` component parses this pattern from SSE token streams and renders the appropriate React component inline within the conversation — while the agent's natural language text wraps around it.
+Tool responses include a `__UI__${JSON.stringify(payload)}__UI__` sentinel. The frontend parses this pattern from SSE token streams and renders the appropriate React component inline within the conversation — while the agent's natural language text wraps around it.
 
 ### Why This Is Powerful
 A guest asks: *"Show me your available rooms."*
-The agent responds with a two-sentence evocative description AND renders an interactive carousel of room cards with full details. The story and the data arrive together.
+The agent responds with an evocative two-sentence sensory description AND renders an interactive carousel of room cards with full details. The story and the data arrive together.
 
 ---
 
-## 6. Conversational Booking Engine
+## 6. Omnichannel Booking Engine & Outbound Intent Flow
 
 ### What It Is
-A full conversational checkout flow, from interest to payment, without leaving the chat window.
+In **AURA V1**, the platform operates in **External Booking Engine Mode** (`booking_mode: "external"`), providing a production-safe, high-converting external booking workflow that directs guests to the hotel's configured booking destinations (Direct Hotel Website, Booking.com, Agoda, Expedia, or Custom Portals) with complete outbound intent tracking.
 
-### The Booking Flow (4 Steps)
-
+### The External Booking Flow
 ```
-1. check_room_availability     → Room Carousel UI (room options, sensory descriptions, rates)
+1. check_room_availability     → 4-Tier Precedence Resolver (Override > Property Default > Auto OTA > Inquiry)
         ↓
-2. get_price_breakdown         → Itemised rate: nightly rate × seasonal multiplier + tax + service charge
+2. RoomCarouselUI Rendering    → Dynamic Primary CTA ("Book Direct") + Multi-Channel Popover
         ↓
-3. create_room_hold            → 15-minute inventory lock → BookingHoldCardUI with countdown
+3. Guest Clicks Booking CTA    → Asynchronous Outbound Intent Logging (POST /booking/track-click)
         ↓
-4. generate_payment_link       → Checkout URL + PaymentCheckoutCardUI with total, currency, expiry
+4. Outbound Redirect           → Safe new-tab navigation with pre-filled check-in, check-out, and guest parameters
 ```
 
-### Key Booking Features
+### Key Booking & Distribution Features
 
-**Seasonal Pricing Narratives:** Instead of showing a number, the AI explains:
-> *"This week is more expensive because it coincides with peak whale-watching season. If you shift by three days you'd save approximately 18%."*
+**Omnichannel Destination Management:** Hoteliers configure property-level destinations in `/dashboard/integrations` (Direct Website with 0% OTA commission, Booking.com, Agoda, Expedia, Other) and set their preferred primary channel.
 
-**15-Minute Hold System:** When a guest decides to proceed, the backend creates a time-limited inventory lock with a TTL of 900 seconds. The frontend shows a live countdown card. No double-booking is possible during this window.
+**Room-Level Override Hierarchy:** Specific room categories can define custom checkout links in `/dashboard/rooms` and `/dashboard/experience` that override property-wide defaults.
 
-**Direct Checkout:** A payment URL is generated that takes the guest directly to a checkout page pre-loaded with their hold details. No re-entry of room type, dates, or pricing.
+**Universal Legacy Fallback:** If no custom URLs are configured, AURA automatically constructs deep-links to the hotel's Booking.com property page using its slug and affiliate AID. If no slug exists, it seamlessly opens the **Room Inquiry Modal**.
 
-**Inquiry Lead Capture:** The `submit_booking_inquiry` tool captures name, email, dates, room category, and special notes as a lead record when a guest expresses intent but isn't ready to pay yet.
+**Outbound Click Tracking & Intent Analytics:** Tracks guest clicks across channels, computes room CTR %, and aggregates outbound booking traffic in `/dashboard/analytics` without making false claims of live PMS room locks.
 
-### Storytelling Integration
-The Booking sub-agent narrates the room selection experience before presenting the carousel — describing the view, the morning light, and the balcony ambience as context before the guest sees the price.
+**Safe V1 Hospitality AI Language:** Prompts enforce that the AI concierge guides guests to verified booking portals and accurately calculates multi-night totals without claiming unverified inventory locks.
+
+**Integrated Mode & 15-Minute Hold Simulator (Dev/Future):** Retains full support for 15-minute temporary room locks (`create_room_hold`), price breakdown calculations (`get_price_breakdown`), and checkout simulators (`/buy`) for future live PMS bridges.
 
 ---
 
