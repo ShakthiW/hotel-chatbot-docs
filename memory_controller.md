@@ -99,6 +99,16 @@ sequenceDiagram
 
 ## 4. API Endpoints
 
+> **Architecture note**: the four endpoints below are **Next.js server routes**
+> (`chatbot-demo-admin`, default `http://localhost:3000`) — not the Go backend. This is the
+> one place in the platform's API surface with a flat, unversioned path instead of the
+> `/api/v1/properties/{id}/...` convention every other document in this set uses, and it's
+> easy to assume the same `localhost:8080` base URL as everywhere else, which would be wrong.
+> They implement the in-process, sub-millisecond cache layer described in §2 above, and
+> write through to the Go backend's own persistent memory endpoints (§4.5 below) so state
+> survives a serverless cold start. All four are unauthenticated by design — guests are never
+> logged in.
+
 ### 1. Get Session Short-Term Memory
 Retrieve current preferences, intent summary, and subagent state for a given session.
 
@@ -186,6 +196,62 @@ Promotes an anonymous session memory block to a permanent guest profile when ide
       "dietaryTags": ["Vegan"],
       "pastSessionIds": ["session-12345"]
     }
+  }
+}
+```
+
+---
+
+## 5. Go Backend: Persistent Memory Endpoints
+
+These are the actual Go backend routes (`http://localhost:8080`, standard
+`/api/v1/properties/{id}/...` convention) that the Next.js routes in §4 write through to and
+read from. All are **public** — the guest chat backend calls them server-to-server on behalf
+of an unauthenticated guest.
+
+### 5.1 Get Session Memory
+* **HTTP Method**: `GET`
+* **Path**: `/api/v1/properties/{id}/memory/session/{sessionId}`
+* If no record exists yet, returns a default empty session memory block (HTTP 200) rather
+  than a 404, so a first-time guest gets a seamless initialization.
+
+### 5.2 Upsert Session Memory
+* **HTTP Method**: `POST`
+* **Path**: `/api/v1/properties/{id}/memory/session`
+* **Request Body**: `{ "session_id": "...", "preferences": "<JSON string>", "personality_summary": "...", "last_subagent": "..." }`
+
+### 5.3 Bind Session to Guest Profile
+* **HTTP Method**: `POST`
+* **Path**: `/api/v1/properties/{id}/memory/bind`
+* **Request Body**: `{ "session_id": "...", "guest_id": "<optional>", "email": "<optional>", "name": "...", "phone": "..." }`
+  — identify the guest by `guest_id` (scoped to this property — a guest ID from another
+  property will not match) or by `email`; a new `GuestProfile` is created if neither matches
+  an existing record.
+
+### 5.4 Get Guest Profile
+Retrieves a long-term guest profile directly by ID — used by the guest chat backend to
+rehydrate historical preferences (dietary tags, preferred view, past special requests) mid-conversation.
+
+* **HTTP Method**: `GET`
+* **Path**: `/api/v1/properties/{id}/guests/{guestId}`
+* **Response (`200 OK`)**:
+```json
+{
+  "status": "success",
+  "message": "Guest profile retrieved successfully",
+  "data": {
+    "id": "guest-9988",
+    "property_id": "a8360f9a-445f-405a-9725-232113f382b4",
+    "name": "Jane Doe",
+    "email": "jane.doe@example.com",
+    "phone": "+94 77 123 4567",
+    "dietary_tags": "[\"Vegan\"]",
+    "preferred_view": "Ocean View",
+    "travel_party_size": 2,
+    "special_requests": "[]",
+    "last_visited_property_id": "a8360f9a-445f-405a-9725-232113f382b4",
+    "created_at": "2026-08-01T12:00:00Z",
+    "updated_at": "2026-08-10T07:45:00Z"
   }
 }
 ```

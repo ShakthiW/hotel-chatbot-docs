@@ -128,9 +128,8 @@ This table provides a transparent audit of every component in the booking subsys
 | **Experience Suite Overrides** | `chatbot-demo-admin/src/app/dashboard/experience/page.tsx` | Room & suite experience manager with channel routing controls and instant link testing. | **REAL WORKING** |
 | **Outbound Analytics Dashboard** | `chatbot-demo-admin/src/app/dashboard/analytics/page.tsx` | Outbound Booking Intent & CTA Analytics widget displaying clicks by channel, room CTR, and daily trend. | **REAL WORKING** |
 | **Database Models** | `chatbot-demo-api/pkg/models/property.go` & `booking_click.go` | GORM models for `Property`, `RoomType`, `BookingClick`, `BookingHold`, `Reservation`. | **REAL WORKING** |
-| **PMS Mock Adapter Engine** | `chatbot-demo-api/pkg/pms/mock_adapter.go` | Algorithmic PMS engine calculating dynamic seasonal pricing, holiday multipliers, and temporary room holds. | **SIMULATED (DEV)** |
-| **PMS Opera Cloud Connector** | `chatbot-demo-api/pkg/pms/opera_adapter.go` | Oracle Opera PMS OHIP API connector interface. | **FUTURE PMS STUB** |
-| **PMS Cloudbeds Connector** | `chatbot-demo-api/pkg/pms/cloudbeds_adapter.go` | Cloudbeds API connector interface. | **FUTURE PMS STUB** |
+| **PMS Internal Adapter Engine** | `chatbot-demo-api/pkg/pms/internal_adapter.go` | Algorithmic PMS engine calculating dynamic seasonal pricing, holiday multipliers, and temporary room holds. `pkg/pms/factory.go`'s `GetAdapter()` routes **every** provider value (`cloudbeds`, `mews`, `opera`, or unset) to this same internal adapter today — there are no separate adapter files for the named providers yet. | **SIMULATED (DEV)** |
+| **PMS Cloudbeds / Mews / Opera Connectors** | `chatbot-demo-api/pkg/pms/factory.go` (`// Future:` comments only) | Named as switch cases in the factory with a comment marking where a real adapter would plug in; no connector code exists for any of the three. | **FUTURE PMS STUB (not yet a file)** |
 
 ---
 
@@ -179,7 +178,7 @@ type BookingDestinationItem struct {
     URL                string    `json:"url"`                 // Target URL
     IsEnabled          bool      `json:"is_enabled"`
     IsPreferred        bool      `json:"is_preferred"`
-    Source             string    `json:"source"`              // "manual", "legacy_auto", "integration"
+    Source             string    `json:"source"`              // "manual", "room_override", "property_default", "legacy_auto" (same vocabulary as BookingClick.Source above — verified against pkg/channels/destination_resolver.go; "integration" does not occur anywhere in the codebase)
     VerificationStatus string    `json:"verification_status"` // "verified", "needs_verification", "invalid"
     LastVerifiedAt     time.Time `json:"last_verified_at"`
 }

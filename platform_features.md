@@ -162,9 +162,16 @@ PMS Entities (Rooms, Outlets, Stories, Seasons, Events) → Auto-Sync → Gemini
 Every vector point is tagged with `property_id`. All Qdrant searches include a mandatory `property_id` filter — no cross-property knowledge leakage is possible.
 
 ### Real-Time Auto-Sync
-When hotel staff update or delete an attraction, seasonal guide, event, story, or room type in the admin dashboard, the backend **automatically triggers a knowledge base re-sync** for that entity:
+When hotel staff update or delete an **attraction, seasonal guide, or event** in the admin
+dashboard, the backend **automatically triggers a knowledge base re-sync** for that entity:
 - Updated entities → re-embed and upsert into Qdrant
 - Deleted entities → purge all associated vectors from Qdrant and PostgreSQL
+
+Rooms and stories are *not* included in this — there is no auto-sync on room or story
+mutations today (verified against `controllers/property-controller/`: only
+`attraction_handler.go`, `season_handler.go`, and `event_handler.go` call the sync path).
+Media has a separate, related mechanism instead: `POST .../media/sync` runs Gemini Vision
+analysis over media assets and indexes the resulting descriptions.
 
 ### How Storytelling Connects
 The RAG engine stores sensory experience narratives, heritage stories, and seasonal mood descriptions alongside factual data. When a guest asks an emotional question ("What will I feel waking up there?"), the vector search retrieves the sensory narrative — not just the room dimensions.
@@ -510,13 +517,18 @@ The real-time communication layer connecting the guest-facing widget to the Lang
 ### SSE Event Stream Protocol
 
 ```
-tool_start   → "generate_itinerary" called (shows loading state)
-tool_end     → Tool execution complete
-ui_payload   → Structured card data (parsed by frontend to render rich UI)
-token        → Streaming text characters (narrative text appears word-by-word)
-done         → Stream complete, thread ID confirmed
-[DONE]       → Connection close signal
+thinking          → Model's intermediate reasoning text (activity indicator)
+tool_start        → "generate_itinerary" called (shows loading state)
+tool_end          → Tool execution complete
+ui_payload        → Structured card data (parsed by frontend to render rich UI)
+token             → Streaming text characters (narrative text appears word-by-word)
+subagent_handoff  → Active sub-agent changed mid-conversation (e.g. Concierge → Booking)
+done              → Stream complete, thread ID confirmed
+error             → Terminal error occurred (carries a message field)
+[DONE]            → Connection close signal
 ```
+
+See `chat_gateway_api.md` §1 for the full event type reference and example stream.
 
 ### Why SSE Over WebSockets
 Server-Sent Events (SSE) are unidirectional and simpler — ideal for an LLM streaming use case where the server pushes tokens to the client. No bidirectional channel needed, lower overhead, native browser support, automatic reconnection.
@@ -565,18 +577,6 @@ Hotel staff can test the AI agent live — simulating guest conversations before
 
 ---
 
-## 18. How All Features Complement One Another
-
-### The Guest Journey — A Connected Experience
-
-```
-Discovery (Website Widget)
-         |
- [Bot Persona Config] → Consistent Brand Voice
-         |
- Guest Asks Emotional Question
-         |
- [Guardrail] → Validates & Classifies
 ## 18. Vercel Blob Cloud Storage & Media Streaming Architecture
 
 ### What It Is

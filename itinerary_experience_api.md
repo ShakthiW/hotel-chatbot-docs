@@ -8,11 +8,25 @@ The **Experience Timeline & Itinerary Generator API** powers the luxury resort e
 
 Manage in-hotel activities, partner programs, and local destination sights/attractions for a specific property.
 
+> **Note on response envelope**: this document's examples use `{success, data}`, matching
+> `chat_gateway_api.md` and `live_chat_and_handover_websocket_api.md` — see the envelope note
+> in `chat_gateway_api.md` for why this differs from other docs in this set.
+>
+> **Note on `source_type` vocabularies**: this document uses `source_type` for two genuinely
+> different things. §1's `Experience.source_type` (`in_hotel` / `partner` / `local_attraction`)
+> classifies how a stored `Experience` record originated. §2's itinerary-output day-activity
+> `source_type` (`hotel_outlet` / `partner_experience` / `destination_attraction`) is a
+> separate, presentation-only label on a generated itinerary item — and `destination_attraction`
+> in particular can be sourced from a `PropertyAttraction` record (see
+> `property_management_api.md` §F), not an `Experience` at all. They are not meant to be the
+> same enum; don't expect `Experience.source_type` values to appear verbatim in itinerary output.
+
 ### 1.1 List Experiences
 Retrieves all experiences, filtered by source type, category, or partner status.
 
 * **HTTP Method**: `GET`
 * **Path**: `/api/v1/properties/{id}/experiences`
+* **Authentication**: Public.
 * **Query Parameters**:
   * `source_type` (optional): `in_hotel`, `partner`, or `local_attraction`.
   * `category` (optional): `wellness`, `dining`, `nightlife`, `culture`, `adventure`, `ocean`, `family`.
@@ -57,6 +71,7 @@ Create a new in-hotel activity, partner program, or local attraction.
 
 * **HTTP Method**: `POST`
 * **Path**: `/api/v1/properties/{id}/experiences`
+* **Authentication**: Required — staff JWT scoped to this property.
 
 #### Example Request Body
 ```json
@@ -102,10 +117,30 @@ Create a new in-hotel activity, partner program, or local attraction.
 ### 1.3 Update Experience
 * **HTTP Method**: `PUT`
 * **Path**: `/api/v1/properties/{id}/experiences/{exp_id}`
+* **Authentication**: Required — staff JWT scoped to this property.
 
 ### 1.4 Delete Experience
 * **HTTP Method**: `DELETE`
 * **Path**: `/api/v1/properties/{id}/experiences/{exp_id}`
+* **Authentication**: Required — staff JWT scoped to this property.
+
+### 1.5 Get One Experience
+* **HTTP Method**: `GET`
+* **Path**: `/api/v1/properties/{id}/experiences/{exp_id}`
+* **Authentication**: Public.
+
+### 1.6 Record Experience Event (Guest Telemetry)
+Records a guest-facing interaction (e.g. a view or click) with an experience card, for the
+Experience Analytics dashboard.
+
+* **HTTP Method**: `POST`
+* **Path**: `/api/v1/properties/{id}/experiences/events`
+* **Authentication**: Public.
+
+### 1.7 Get Experience Analytics
+* **HTTP Method**: `GET`
+* **Path**: `/api/v1/properties/{id}/experiences/analytics`
+* **Authentication**: Required — staff JWT scoped to this property.
 
 ---
 
@@ -115,6 +150,8 @@ Generates tailored multi-day experience itineraries, combining tenant priority w
 
 * **HTTP Method**: `POST`
 * **Path**: `/api/v1/properties/{id}/itinerary/generate`
+* **Authentication**: Public — called server-to-server by the guest chat agent during a live
+  conversation.
 
 ### Request Payload Parameters
 | Parameter | Type | Required | Description |
@@ -198,6 +235,7 @@ Returns the 24-hour sensory day rhythm for the resort (from 06:00 AM Sunrise to 
 
 * **HTTP Method**: `GET`
 * **Path**: `/api/v1/properties/{id}/experience-timeline`
+* **Authentication**: Public.
 
 #### Example Response (`200 OK`)
 ```json

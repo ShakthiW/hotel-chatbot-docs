@@ -138,6 +138,11 @@ http://localhost:8080/api/v1/properties/{property_id}/knowledge
 
 ---
 
+> **Authentication**: Every endpoint in this document requires a staff JWT scoped to the
+> property (`{id}` must match the caller's `property_id` claim, or the caller must be
+> `super_admin`) — the knowledge base is a dashboard-only management surface, never called
+> directly by a guest.
+
 ### 1. Ingest Knowledge Document
 Uploads a document (PDF, TXT, Markdown) or raw text for asynchronous parsing, chunking, embedding, and vector storage.
 
@@ -333,7 +338,12 @@ curl -X POST http://localhost:8080/api/v1/properties/a8360f9a-445f-405a-9725-232
 
 ## 6. Automated Real-Time Knowledge Base Synchronization
 
-Whenever destination attractions, seasonal intelligence guides, or property events are updated (`PUT`) or removed (`DELETE`), the system automatically triggers synchronous knowledge base synchronization:
+Whenever destination attractions, seasonal intelligence guides, or property events are updated (`PUT`) or removed (`DELETE`), the system automatically triggers synchronous knowledge base synchronization. Rooms and stories do **not** have this behavior — there is no auto-sync
+on room or story mutations, and stories have no `PUT`/update endpoint at all (see
+`property_management_api.md` §B/§E). Media assets have a related but separate mechanism: `POST
+/api/v1/properties/{id}/media/sync` runs Gemini Vision analysis over media and indexes the
+resulting descriptions — it is not triggered automatically on every media mutation and does
+not use the canonical-text-block re-embed described below.
 
 1. **On Entity Update (`PUT`)**:
    - The Go engine formats a refreshed canonical string block containing all updated fields.

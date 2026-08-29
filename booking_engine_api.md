@@ -6,24 +6,31 @@ The **Conversational Booking & Availability Engine API** provides room inventory
 
 ## Endpoints Overview
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/v1/properties/{id}/booking/check-availability` | Checks live room category availability, nightly rates, and resolves dynamic booking channel actions. |
-| `POST` | `/api/v1/properties/{id}/booking/price-breakdown` | Calculates itemized taxes, service charges, and resort credits. |
-| `POST` | `/api/v1/properties/{id}/booking/hold` | Creates a 15-minute temporary room hold reservation (Integrated/Simulator Mode). |
-| `POST` | `/api/v1/properties/{id}/booking/payment-link` | Generates a payment link and checkout UI payload. |
-| `GET` | `/api/v1/properties/{id}/booking/destinations` | Retrieves property-level configured booking channels, preferred channel, room override status, and setup health. |
-| `PUT` | `/api/v1/properties/{id}/booking/destinations` | Updates property-level booking destinations, preferred channel, and booking mode. |
-| `POST` | `/api/v1/properties/{id}/booking/destinations/test` | Validates a destination URL and updates the `last_verified_at` timestamp. |
-| `PUT` | `/api/v1/properties/{id}/rooms/{roomId}/booking-destinations` | Sets or clears room-specific booking destination overrides. |
-| `POST` | `/api/v1/properties/{id}/booking/track-click` | Asynchronously logs guest outbound booking intent clicks with channel attribution. |
-| `GET` | `/api/v1/properties/{id}/booking/analytics` | Aggregates outbound booking clicks, room CTR, channel distribution, and daily intent trends. |
+| Method | Endpoint | Auth | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/properties/{id}/booking/check-availability` | Public | Checks live room category availability, nightly rates, and resolves dynamic booking channel actions. |
+| `POST` | `/api/v1/properties/{id}/booking/price-breakdown` | Public | Calculates itemized taxes, service charges, and resort credits. |
+| `POST` | `/api/v1/properties/{id}/booking/hold` | Public | Creates a 15-minute temporary room hold reservation (Integrated/Simulator Mode). |
+| `POST` | `/api/v1/properties/{id}/booking/payment-link` | Public | Generates a payment link and checkout UI payload. |
+| `GET` | `/api/v1/properties/{id}/booking/destinations` | Public | Retrieves property-level configured booking channels, preferred channel, room override status, and setup health. |
+| `PUT` | `/api/v1/properties/{id}/booking/destinations` | Staff | Updates property-level booking destinations, preferred channel, and booking mode. |
+| `POST` | `/api/v1/properties/{id}/booking/destinations/test` | Staff | Validates a destination URL and updates the `last_verified_at` timestamp. |
+| `PUT` | `/api/v1/properties/{id}/rooms/{roomId}/booking-destinations` | Staff | Sets or clears room-specific booking destination overrides. |
+| `POST` | `/api/v1/properties/{id}/booking/track-click` | Public | Asynchronously logs guest outbound booking intent clicks with channel attribution. |
+| `GET` | `/api/v1/properties/{id}/booking/analytics` | Staff | Aggregates outbound booking clicks, room CTR, channel distribution, and daily intent trends. |
+
+The four `check-availability`/`price-breakdown`/`hold`/`payment-link`/`track-click` endpoints
+and the `GET` on `destinations` are public because they're invoked server-to-server by the
+guest chat backend on behalf of an unauthenticated guest — there is no logged-in user at that
+point in the conversation. Everything that configures or reports on a property (`PUT`/`test`
+destinations, room overrides, analytics) requires a staff JWT.
 
 ---
 
 ## 1. Check Room Availability & Resolve Booking Destinations
 * **HTTP Method**: `POST`
 * **Path**: `/api/v1/properties/{id}/booking/check-availability`
+* **Authentication**: Public.
 
 Checks room availability for specified dates and party size, and automatically resolves dynamic booking actions based on the 4-tier precedence engine (**Room Override** $\rightarrow$ **Property Default** $\rightarrow$ **Legacy Auto Booking.com** $\rightarrow$ **Inquiry Fallback**).
 
@@ -101,6 +108,8 @@ Checks room availability for specified dates and party size, and automatically r
 ## 2. Get Property Booking Destinations & Setup Status
 * **HTTP Method**: `GET`
 * **Path**: `/api/v1/properties/{id}/booking/destinations`
+* **Authentication**: Public — read server-to-server by the guest booking agent, same as the
+  other `GET` content endpoints across the platform.
 
 ### Response (`200 OK`)
 ```json
@@ -164,6 +173,7 @@ Checks room availability for specified dates and party size, and automatically r
 ## 3. Update Property Booking Destinations
 * **HTTP Method**: `PUT`
 * **Path**: `/api/v1/properties/{id}/booking/destinations`
+* **Authentication**: Required — staff JWT scoped to this property.
 
 ### Request Body
 ```json
@@ -214,6 +224,7 @@ Checks room availability for specified dates and party size, and automatically r
 ## 4. Test Destination Link & Update Verification
 * **HTTP Method**: `POST`
 * **Path**: `/api/v1/properties/{id}/booking/destinations/test`
+* **Authentication**: Required — staff JWT scoped to this property.
 
 ### Request Body
 ```json
@@ -242,6 +253,7 @@ Checks room availability for specified dates and party size, and automatically r
 ## 5. Update Room-Specific Booking Destination Override
 * **HTTP Method**: `PUT`
 * **Path**: `/api/v1/properties/{id}/rooms/{roomId}/booking-destinations`
+* **Authentication**: Required — staff JWT scoped to this property.
 
 ### Request Body
 ```json
@@ -283,6 +295,8 @@ Checks room availability for specified dates and party size, and automatically r
 ## 6. Track Outbound Booking Click
 * **HTTP Method**: `POST`
 * **Path**: `/api/v1/properties/{id}/booking/track-click`
+* **Authentication**: Public — fired directly from the guest's browser when they click a
+  booking CTA.
 
 Asynchronously records when a guest clicks a room card's booking CTA button or selects an option from the multi-channel dropdown popover.
 
@@ -319,6 +333,7 @@ Asynchronously records when a guest clicks a room card's booking CTA button or s
 ## 7. Get Outbound Booking Traffic & Intent Analytics
 * **HTTP Method**: `GET`
 * **Path**: `/api/v1/properties/{id}/booking/analytics`
+* **Authentication**: Required — staff JWT scoped to this property.
 
 ### Response (`200 OK`)
 ```json
@@ -394,6 +409,7 @@ Asynchronously records when a guest clicks a room card's booking CTA button or s
 ## 8. Price Breakdown Calculation
 * **HTTP Method**: `POST`
 * **Path**: `/api/v1/properties/{id}/booking/price-breakdown`
+* **Authentication**: Public.
 
 ### Request Body
 ```json
@@ -427,6 +443,7 @@ Asynchronously records when a guest clicks a room card's booking CTA button or s
 ## 9. Create Temporary Booking Hold (15-Min TTL)
 * **HTTP Method**: `POST`
 * **Path**: `/api/v1/properties/{id}/booking/hold`
+* **Authentication**: Public.
 
 Used in Integrated Mode or testing simulator to create a temporary 15-minute room lock.
 
@@ -466,6 +483,7 @@ Used in Integrated Mode or testing simulator to create a temporary 15-minute roo
 ## 10. Generate Checkout Payment Link
 * **HTTP Method**: `POST`
 * **Path**: `/api/v1/properties/{id}/booking/payment-link`
+* **Authentication**: Public.
 
 ### Request Body
 ```json

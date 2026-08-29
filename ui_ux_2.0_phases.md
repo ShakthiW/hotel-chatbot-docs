@@ -290,12 +290,13 @@ Widget CTAs and suggestions adapt based on current journey stage.
 
 ## SSE Protocol Extensions (Planned)
 
-Current event types:
+Current event types (verified against `src/app/api/chat/route.ts`):
 - `token` — streamed text
 - `thinking` — AI reasoning (will become ConciergeActivityUI)
 - `ui_payload` — structured widget data
 - `tool_start` / `tool_end` — tool execution lifecycle
-- `agent_handoff` — subagent transition
+- `subagent_handoff` — subagent transition (note: the actual literal is `subagent_handoff`,
+  not `agent_handoff`)
 - `done` — stream complete
 - `error` — error
 

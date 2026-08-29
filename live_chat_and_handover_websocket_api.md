@@ -56,6 +56,28 @@ flowchart TD
 * `role`: `"guest"` | `"operator"` (Default: `"guest"`)
 * `name`: Display name of the participant (e.g., `"Shakthi (Front Desk)"` or `"Guest"`).
 * `propertyId`: UUID of the active property for multi-tenant boundary isolation.
+* `token`: **Required when `role=operator`**, ignored for `role=guest`. A staff JWT
+  (the same token used for REST calls), passed as a query parameter because browsers cannot
+  set custom headers on a WebSocket upgrade request. The connection is rejected (`401`) if the
+  token is missing/invalid, and rejected (`403`) if the token's `property_id` claim doesn't
+  match `propertyId` (unless the token's role is `super_admin`). Guest connections have no
+  equivalent check — the `sessionKey` itself is the only thing gating access to that room, so
+  treat session keys as capability tokens, not public identifiers.
+
+> **Authentication summary for this document**: guest WebSocket connections and the guest-only
+> REST calls (`GET`/`POST .../messages`, `POST .../request-handover`) are public — guests are
+> never logged in. Operator WebSocket connections require the `token` parameter above.
+> Everything else in the REST section (list sessions, takeover, handback, suggested-replies,
+> delete) requires a staff JWT scoped to the property.
+>
+> **Note on similarly-named routes**: the `chat-sessions` endpoints here (served by
+> `session-controller`) are distinct from `GET .../chat/sessions/{sessionId}/history` (served
+> by `chat-controller`, documented in `chat_gateway_api.md`) — same-sounding names, different
+> handlers and different path segments (`chat-sessions` vs `chat/sessions`).
+>
+> **Note on response envelope**: REST responses in this document use `{success, data}` /
+> `{success: false, error}`, matching `chat_gateway_api.md` and `itinerary_experience_api.md`
+> — see the envelope note there for why this differs from other docs in this set.
 
 ---
 
@@ -125,29 +147,90 @@ Operators can leave internal notes during live sessions (e.g. *"Guest requested 
 
 ### 1. List Active Chat Sessions
 * **Endpoint**: `GET /api/v1/properties/{id}/chat-sessions`
+* **Authentication**: Required — staff JWT scoped to this property. This returns every guest's
+  session metadata for the property, so it is intentionally staff-only (see §2 below for the
+  public, single-session alternative guest widgets use instead).
 * **Query Params**: `session_mode` (`All`, `handover_requested`, `human_active`, `ai_active`), `channel` (`web_chat`, `whatsapp`)
 * **Response**:
 ```json
-[
-  {
-    "id": "e391b10a-3c5e-49b8-a764-cf36f251c142",
-    "property_id": "a8360f9a-445f-405a-9725-232113f382b4",
-    "session_key": "session-a8360f9a-1724678400000",
-    "guest_name": "Elena Rostova",
-    "room_number": "Villa 402",
-    "channel": "web_chat",
-    "session_mode": "handover_requested",
-    "assigned_operator": "",
-    "last_message_at": "2026-08-26T14:28:10Z",
-    "created_at": "2026-08-26T14:15:00Z"
-  }
-]
+{
+  "success": true,
+  "data": [
+    {
+      "id": "e391b10a-3c5e-49b8-a764-cf36f251c142",
+      "property_id": "a8360f9a-445f-405a-9725-232113f382b4",
+      "session_key": "session-a8360f9a-1724678400000",
+      "guest_name": "Elena Rostova",
+      "room_number": "Villa 402",
+      "channel": "web_chat",
+      "session_mode": "handover_requested",
+      "assigned_operator": "",
+      "last_message_at": "2026-08-26T14:28:10Z",
+      "created_at": "2026-08-26T14:15:00Z"
+    }
+  ]
+}
 ```
 
 ---
 
-### 2. Request Human Handover (Guest/AI Trigger)
+### 2. Get One Chat Session (Guest-Safe Status Lookup)
+* **Endpoint**: `GET /api/v1/properties/{id}/chat-sessions/{sessionKey}`
+* **Authentication**: Public. This exists specifically so a guest widget can learn its own
+  session's live-handover status (`session_mode`, `assigned_operator`) without being able to
+  see every other guest's session, which is what calling §1's list endpoint would require.
+* **Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "e391b10a-3c5e-49b8-a764-cf36f251c142",
+    "property_id": "a8360f9a-445f-405a-9725-232113f382b4",
+    "session_key": "session-a8360f9a-1724678400000",
+    "guest_name": "Elena Rostova",
+    "session_mode": "human_active",
+    "assigned_operator": "Dilshan (Duty Manager)",
+    "handover_reason": "Guest asked for manager regarding villa check-in time",
+    "last_message_at": "2026-08-26T14:28:10Z"
+  }
+}
+```
+
+---
+
+### 3. Get / Save Session Messages
+* **Endpoints**: `GET /api/v1/properties/{id}/chat-sessions/{sessionKey}/messages`,
+  `POST /api/v1/properties/{id}/chat-sessions/{sessionKey}/messages`
+* **Authentication**: Public — both are called by the guest chat backend and, for `GET`, by
+  guest widgets directly. Internal staff whispers (`is_whisper: true` records) are only
+  included in the `GET` response when the caller presents a valid staff JWT scoped to this
+  property (query param `?role=operator` alone is **not** sufficient — it must be paired with
+  a real `Authorization: Bearer <token>` header, precisely to prevent a guest from simply
+  appending `?role=operator` to read staff notes).
+* **`GET` Response**:
+```json
+{
+  "success": true,
+  "data": [
+    { "id": "m1", "sender": "guest", "content": "Do you have a room with a sea view?", "is_whisper": false, "created_at": "2026-08-26T14:15:03Z" },
+    { "id": "m2", "sender": "ai", "content": "Yes! The Ocean View Suite...", "is_whisper": false, "created_at": "2026-08-26T14:15:06Z" }
+  ]
+}
+```
+* **`POST` Request Body**:
+```json
+{
+  "sender": "guest",
+  "content": "Do you have a room with a sea view?",
+  "channel": "web_chat"
+}
+```
+
+---
+
+### 4. Request Human Handover (Guest/AI Trigger)
 * **Endpoint**: `POST /api/v1/properties/{id}/chat-sessions/{sessionKey}/request-handover`
+* **Authentication**: Public — triggered by the guest chat backend, not a logged-in user.
 * **Request Body**:
 ```json
 {
@@ -163,8 +246,9 @@ Operators can leave internal notes during live sessions (e.g. *"Guest requested 
 
 ---
 
-### 3. Takeover Session (Operator Action)
+### 5. Takeover Session (Operator Action)
 * **Endpoint**: `POST /api/v1/properties/{id}/chat-sessions/{sessionKey}/takeover`
+* **Authentication**: Required — staff JWT scoped to this property.
 * **Request Body**:
 ```json
 {
@@ -177,20 +261,24 @@ Operators can leave internal notes during live sessions (e.g. *"Guest requested 
 
 ---
 
-### 4. Hand Back to AI (Operator Action)
+### 6. Hand Back to AI (Operator Action)
 * **Endpoint**: `POST /api/v1/properties/{id}/chat-sessions/{sessionKey}/handback`
+* **Authentication**: Required — staff JWT scoped to this property.
 * **Effects**:
   - Sets `session_mode` to `ai_active`.
   - Sends system transition message to guest widget: *"Operator has concluded live assistance. AI Concierge is now active."*
 
 ---
 
-### 5. Fetch Suggested AI Copilot Replies
-* **Endpoint**: `GET /api/v1/properties/{id}/chat-sessions/{sessionKey}/suggested-replies`
+### 7. Fetch Suggested AI Copilot Replies
+* **Endpoint**: `POST /api/v1/properties/{id}/chat-sessions/{sessionKey}/suggest-replies`
+  (note: `POST`, and `suggest-replies` — not `GET`/`suggested-replies`)
+* **Authentication**: Required — staff JWT scoped to this property.
 * **Response**:
 ```json
 {
-  "suggestions": [
+  "success": true,
+  "data": [
     "I would be delighted to arrange complimentary late checkout at 2:00 PM for you.",
     "Let me check with our housekeeping team right away and confirm your request.",
     "Our private dining team is preparing your table now. Is there anything else you require?"
@@ -200,8 +288,9 @@ Operators can leave internal notes during live sessions (e.g. *"Guest requested 
 
 ---
 
-### 6. Delete Chat Session (Permanent Purge)
+### 8. Delete Chat Session (Permanent Purge)
 * **Endpoint**: `DELETE /api/v1/properties/{id}/chat-sessions/{sessionKey}`
+* **Authentication**: Required — staff JWT scoped to this property.
 * **Effects**:
   - Deletes all associated records in `chat_messages` and `chat_sessions`.
   - Broadcasts `session_deleted` event so all open dashboards remove the conversation from view instantly.
