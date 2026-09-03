@@ -211,7 +211,7 @@ The agent responds with an evocative two-sentence sensory description AND render
 ## 6. Omnichannel Booking Engine & Outbound Intent Flow
 
 ### What It Is
-In **AURA V1**, the platform operates in **External Booking Engine Mode** (`booking_mode: "external"`), providing a production-safe, high-converting external booking workflow that directs guests to the hotel's configured booking destinations (Direct Hotel Website, Booking.com, Agoda, Expedia, or Custom Portals) with complete outbound intent tracking.
+In **holaa V1**, the platform operates in **External Booking Engine Mode** (`booking_mode: "external"`), providing a production-safe, high-converting external booking workflow that directs guests to the hotel's configured booking destinations (Direct Hotel Website, Booking.com, Agoda, Expedia, or Custom Portals) with complete outbound intent tracking.
 
 ### The External Booking Flow
 ```
@@ -230,7 +230,7 @@ In **AURA V1**, the platform operates in **External Booking Engine Mode** (`book
 
 **Room-Level Override Hierarchy:** Specific room categories can define custom checkout links in `/dashboard/rooms` and `/dashboard/experience` that override property-wide defaults.
 
-**Universal Legacy Fallback:** If no custom URLs are configured, AURA automatically constructs deep-links to the hotel's Booking.com property page using its slug and affiliate AID. If no slug exists, it seamlessly opens the **Room Inquiry Modal**.
+**Universal Legacy Fallback:** If no custom URLs are configured, holaa automatically constructs deep-links to the hotel's Booking.com property page using its slug and affiliate AID. If no slug exists, it seamlessly opens the **Room Inquiry Modal**.
 
 **Outbound Click Tracking & Intent Analytics:** Tracks guest clicks across channels, computes room CTR %, and aggregates outbound booking traffic in `/dashboard/analytics` without making false claims of live PMS room locks.
 

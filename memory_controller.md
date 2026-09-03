@@ -80,17 +80,17 @@ sequenceDiagram
 
 ### Short-Term Memory (Session Scope)
 - **Scope**: Scoped to the current thread or chat session.
-- **Identifier**: `sessionId` (anonymous UUID generated on the client side, saved in `localStorage.getItem('aura_active_session_${propertyId}')`, and passed in the `x-session-id` request header).
+- **Identifier**: `sessionId` (anonymous UUID generated on the client side, saved in `localStorage.getItem('holaa_active_session_${propertyId}')`, and passed in the `x-session-id` request header).
 - **Contents**:
   - `preferences`: Extracted guest choices (dietaryTags, preferredView, bedType, travelPartySize, travelDates, budgetRange, activityInterests, specialRequests).
   - `personalitySummary`: Dynamic 1-2 sentence LLM-synthesized traveler persona and travel intent.
 
 ### Long-Term Memory (Guest Scope)
 - **Scope**: Cross-session persistence across browser visits and chat sessions.
-- **Identifier**: `guestId` (stored in `localStorage.getItem('aura_guest_id')`, passed in `x-guest-id` request header).
+- **Identifier**: `guestId` (stored in `localStorage.getItem('holaa_guest_id')`, passed in `x-guest-id` request header).
 - **Contents**: Historical guest profile, lifetime accumulated preferences, past stays, and permanent dietary/accessibility needs.
 - **Client Storage & Auto-Hydration Lifecycle**:
-  1. On page load, `ChatSimulator` reads `aura_guest_id` and `aura_active_session_${propertyId}` from `localStorage`.
+  1. On page load, `ChatSimulator` reads `holaa_guest_id` and `holaa_active_session_${propertyId}` from `localStorage`.
   2. If an active session exists, it calls `GET /api/v1/properties/{id}/chat-sessions/{sessionKey}/messages` to restore the conversation history seamlessly.
   3. When the guest clicks "New Chat", a fresh `sessionKey` is generated in `localStorage`, resetting the dialogue while preserving the guest's long-term memory.
 - **Anonymous Session Binding**: When an unauthenticated session guest discloses their identity (email, phone, name), the short-term preferences and intent automatically merge into their permanent `GuestProfile`.

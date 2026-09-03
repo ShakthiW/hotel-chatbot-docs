@@ -1,6 +1,6 @@
 # Comprehensive Architecture: Room Reservation & Booking Subsystem
 
-> **Document Version**: 3.0 (AURA V1 Release)  
+> **Document Version**: 3.0 (holaa V1 Release)  
 > **Status**: Production Blueprint & Architecture Audit  
 > **Location**: `docs/booking_and_reservation_flow.md`
 
@@ -10,7 +10,7 @@
 
 The **Room Reservation & Booking Subsystem** powers conversational, AI-assisted room recommendations, external booking routing, temporary inventory simulation, and inquiry capture for luxury hotels and resorts.
 
-In **AURA V1**, the platform operates in **External Booking Engine Mode** (`booking_mode: "external"`), avoiding premature live two-way PMS inventory locks in favor of a robust, high-converting external booking workflow. Prospective guests interact with the AI concierge using natural sensory dialogue (e.g., *"ocean view with a plunge pool for our anniversary"*), inspect dynamic Generative UI cards, and are routed to the hotel's configured **Direct Website**, **Booking.com**, **Agoda**, **Expedia**, or custom booking portals, with seamless fallback to an **Inquiry Experience** when no booking link is configured.
+In **holaa V1**, the platform operates in **External Booking Engine Mode** (`booking_mode: "external"`), avoiding premature live two-way PMS inventory locks in favor of a robust, high-converting external booking workflow. Prospective guests interact with the AI concierge using natural sensory dialogue (e.g., *"ocean view with a plunge pool for our anniversary"*), inspect dynamic Generative UI cards, and are routed to the hotel's configured **Direct Website**, **Booking.com**, **Agoda**, **Expedia**, or custom booking portals, with seamless fallback to an **Inquiry Experience** when no booking link is configured.
 
 ```
 Guest Message  ──►  LangGraph Agent (Booking Specialist)  ──►  Destination Resolver

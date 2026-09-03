@@ -1,12 +1,12 @@
 # Omnichannel Booking Destinations & Distribution Architecture
 
-This document specifies the **AURA V1 Omnichannel Booking Destination Architecture**, URL resolution priority, parameter injection, room-level override hierarchy, outbound intent tracking, and safe AI conversation guardrails.
+This document specifies the **holaa V1 Omnichannel Booking Destination Architecture**, URL resolution priority, parameter injection, room-level override hierarchy, outbound intent tracking, and safe AI conversation guardrails.
 
 ---
 
 ## 1. Overview & Architectural Principles
 
-In AURA V1, rather than attempting direct two-way PMS inventory synchronization, the platform operates in **External Booking Engine Mode** (`booking_mode: "external"`). This enables luxury resort operators to direct guests to their existing high-converting direct booking engine or preferred OTA distribution channels with zero technical friction.
+In holaa V1, rather than attempting direct two-way PMS inventory synchronization, the platform operates in **External Booking Engine Mode** (`booking_mode: "external"`). This enables luxury resort operators to direct guests to their existing high-converting direct booking engine or preferred OTA distribution channels with zero technical friction.
 
 ### Supported Channels
 1. **Direct Hotel Website (`direct`)**: Highest margin (0% OTA commission).
@@ -44,9 +44,9 @@ When a guest requests room availability or booking assistance, the backend [`des
 
 ### Precedence Rules:
 1. **Tier 1 (Room Override)**: If a specific room category has a custom booking URL configured (e.g. `/book/ocean-view-suite`), it takes precedence over property defaults (`source: "room_override"`).
-2. **Tier 2 (Property Preferred)**: If no room override exists, AURA uses the property's configured preferred channel (e.g. `direct` with URL `https://hotel.com/reservations`, `source: "property_default"`).
-3. **Tier 3 (Legacy Auto Booking.com)**: If the property has not configured any explicit destinations, AURA generates a pre-filled deep-link using the hotel's `booking_slug` and affiliate AID (`source: "legacy_auto"`).
-4. **Tier 4 (Inquiry Fallback)**: If no URL can be constructed, AURA renders an **"Inquire About This Room"** button (`inquiry_fallback: true`) opening the luxury pre-filled `RoomInquiryModal`.
+2. **Tier 2 (Property Preferred)**: If no room override exists, holaa uses the property's configured preferred channel (e.g. `direct` with URL `https://hotel.com/reservations`, `source: "property_default"`).
+3. **Tier 3 (Legacy Auto Booking.com)**: If the property has not configured any explicit destinations, holaa generates a pre-filled deep-link using the hotel's `booking_slug` and affiliate AID (`source: "legacy_auto"`).
+4. **Tier 4 (Inquiry Fallback)**: If no URL can be constructed, holaa renders an **"Inquire About This Room"** button (`inquiry_fallback: true`) opening the luxury pre-filled `RoomInquiryModal`.
 
 ---
 
@@ -93,7 +93,7 @@ The Generative UI (`RoomCarouselUI.tsx` and `RoomDetailUI.tsx`) renders dynamic 
 
 ## 5. Outbound Click Tracking & Intent Analytics
 
-To provide transparency into how AI conversations drive revenue without falsely claiming live PMS integration, AURA tracks **Outbound Booking Intent**:
+To provide transparency into how AI conversations drive revenue without falsely claiming live PMS integration, holaa tracks **Outbound Booking Intent**:
 
 ### Tracked Metadata:
 - `property_id`: Target hotel UUID

@@ -162,7 +162,7 @@ Checks room availability for specified dates and party size, and automatically r
       "has_agoda": true,
       "has_expedia": false,
       "live_pms_connected": false,
-      "aura_managed_reservations": false
+      "holaa_managed_reservations": false
     }
   }
 }
@@ -398,7 +398,7 @@ Asynchronously records when a guest clicks a room card's booking CTA button or s
       "has_agoda": true,
       "has_expedia": false,
       "live_pms_connected": false,
-      "aura_managed_reservations": false
+      "holaa_managed_reservations": false
     }
   }
 }

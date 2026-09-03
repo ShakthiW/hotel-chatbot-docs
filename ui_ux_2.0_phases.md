@@ -1,8 +1,8 @@
-# AURA UI/UX 2.0 — Generative UI Redesign Phases
+# holaa UI/UX 2.0 — Generative UI Redesign Phases
 
 > **Principle**: "Don't just answer the guest. Help them experience the answer."
 
-This document tracks the complete 5-phase redesign of AURA's generative UI system, transforming the chat from functional widgets into a premium AI hospitality experience.
+This document tracks the complete 5-phase redesign of holaa's generative UI system, transforming the chat from functional widgets into a premium AI hospitality experience.
 
 ---
 
@@ -33,7 +33,7 @@ This document tracks the complete 5-phase redesign of AURA's generative UI syste
 - [ ] Create `WidgetCTA.tsx` — structured action button with luxury styling
 - [ ] Create `WidgetTag.tsx` — compact metadata tag/chip component
 - [ ] Create `ImageCarousel.tsx` — touch-swipe image carousel with lazy loading
-- [ ] Create `AuraRecommendationBadge.tsx` — "AURA'S RECOMMENDATION" badge
+- [ ] Create `HolaaRecommendationBadge.tsx` — "holaa'S RECOMMENDATION" badge
 
 ### 1.2 Chat Architecture Refactor
 - [ ] Decompose `ChatSimulator.tsx` (821 lines → modular components)
@@ -58,7 +58,7 @@ This document tracks the complete 5-phase redesign of AURA's generative UI syste
 - [ ] Tag row (view, bed, guests, size)
 - [ ] Sensory narrative description
 - [ ] Availability indicator
-- [ ] AURA Recommendation badge
+- [ ] holaa Recommendation badge
 - [ ] "Explore Room" + "Compare" CTAs
 - [ ] Snap-scroll with partial next-card visibility
 - [ ] Skeleton loading state
@@ -67,14 +67,14 @@ This document tracks the complete 5-phase redesign of AURA's generative UI syste
 ### 1.5 DiningOutletUI 2.0
 - [ ] Restaurant photography
 - [ ] Price level, hours, dietary tags, availability, featured dish, rating
-- [ ] AURA recommendation badge
+- [ ] holaa recommendation badge
 - [ ] Dietary filter chips
 - [ ] "View Menu" + "Reserve Table" CTAs
 
 ### 1.6 AttractionCardUI 2.0
 - [ ] Attraction photography
-- [ ] Weather suitability, cost, duration, crowd level, AURA score
-- [ ] "View on Map" + "Add to Itinerary" + "Ask AURA" CTAs
+- [ ] Weather suitability, cost, duration, crowd level, holaa score
+- [ ] "View on Map" + "Add to Itinerary" + "Ask holaa" CTAs
 
 ### 1.7 BookingHoldCardUI 2.0
 - [ ] Room image thumbnail
@@ -319,7 +319,7 @@ src/components/generative-ui/
 │   ├── WidgetCTA.tsx
 │   ├── WidgetTag.tsx
 │   ├── ImageCarousel.tsx
-│   └── AuraRecommendationBadge.tsx
+│   └── HolaaRecommendationBadge.tsx
 ├── RoomCarouselUI.tsx          ← Phase 1 (redesign)
 ├── RoomComparisonUI.tsx        ← Phase 1 (new)
 ├── RoomDetailUI.tsx            ← Phase 2
