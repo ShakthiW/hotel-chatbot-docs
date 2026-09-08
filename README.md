@@ -20,6 +20,8 @@ Welcome to the backend REST API & AI Agent Architecture documentation for the **
 | 👤 **[Session & Guest Memory API](memory_controller.md)** | Short-term session preferences, long-term guest profiling, background memory extraction, and session-to-guest binding. | `/memory/session`, `/memory/bind` |
 | 📋 **[Project Brief & System Design](project_brief.md)** | Platform specifications, multi-agent architecture, guardrails, and PMS adapter integration requirements. | Architecture Specs & Persona Guidelines |
 | ✨ **[Platform Feature Compendium](platform_features.md)** | Full audit of every feature across frontend + backend with storytelling context, complementary relationships, and the connected guest journey. | All Features & Omnichannel Booking |
+| 🧩 **[Embeddable Widget Architecture](widget_embed_architecture.md)** | The vanilla-JS `public/widget.js` real hotel sites embed — a separate renderer from the React admin/guest chat, its rendering parity matrix, security model, and accessibility. | `widget.js`, rendering parity, live re-ranking |
+| 🐳 **[Deployment & Infrastructure](deployment_and_infrastructure.md)** | Docker Compose stack (Postgres, Qdrant, the Go API), droplet setup, environment variables, migration/seeding behavior, and CORS/rate-limit middleware ordering. | `docker-compose.yml`, droplet setup, security middleware |
 
 ---
 
@@ -38,3 +40,7 @@ cd chatbot-demo-admin
 npm run dev
 # Server starts on http://localhost:3000
 ```
+
+Both of the above run against the shared Aiven Postgres + Qdrant Cloud used for local dev. For
+a self-contained deployment (Postgres + Qdrant + the Go API together via Docker Compose, no
+external managed services required) see **[Deployment & Infrastructure](deployment_and_infrastructure.md)**.

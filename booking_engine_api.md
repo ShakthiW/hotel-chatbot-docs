@@ -34,17 +34,39 @@ destinations, room overrides, analytics) requires a staff JWT.
 
 Checks room availability for specified dates and party size, and automatically resolves dynamic booking actions based on the 4-tier precedence engine (**Room Override** $\rightarrow$ **Property Default** $\rightarrow$ **Legacy Auto Booking.com** $\rightarrow$ **Inquiry Fallback**).
 
+**This endpoint is the single source of truth for room filtering** — the LangGraph
+`check_room_availability` tool routes every room lookup through it, dated or not (missing
+`check_in`/`check_out` default here to "today for one night" rather than the tool needing its
+own date-guessing logic). Two of its inputs are **hard filters, not ranking hints**:
+
+- `adults` / `children` — excludes any room whose `max_adults`/`max_children` can't fit the
+  party. This used to only be enforced on this dated path; a dateless "room for 4" question
+  went through a different, unfiltered catalog endpoint entirely. That second path no longer
+  exists — every room lookup goes through here now.
+- `view_type` — a **named** view (e.g. `"ocean view"`) excludes any room whose `view_type`
+  doesn't match, case-insensitively. A guest who asks for an ocean view should never see a
+  garden-view room listed as if it qualified.
+
+`sensory_preferences` remains a **soft** signal — it nudges `sensory_match_score` (+5 per
+matched keyword against the room's name/view/bed/description text, capped at 100) without
+excluding anything, for vague mood requests ("quiet", "romantic") that shouldn't hard-filter
+the way a stated view or party size does.
+
 ### Request Body
 ```json
 {
   "check_in": "2026-09-01",
   "check_out": "2026-09-05",
   "adults": 2,
-  "children": 0
+  "children": 0,
+  "view_type": "Ocean View",
+  "sensory_preferences": ["quiet", "sunset"]
 }
 ```
+`view_type` and `sensory_preferences` are both optional. Omit `check_in`/`check_out` entirely
+for a dateless browse — capacity and view filtering still apply exactly the same.
 
-### Response (`200 OK`)
+### Response (`200 OK`) — matches found
 ```json
 {
   "status": "success",
@@ -64,6 +86,8 @@ Checks room availability for specified dates and party size, and automatically r
         "currency": "USD",
         "bed_type": "King Bed",
         "view_type": "Ocean View",
+        "max_adults": 2,
+        "max_children": 1,
         "sensory_experience": "Around sunrise you will usually hear the ocean waves before you see them...",
         "booking_url": "https://amanwella.com/reservations?checkin=2026-09-01&checkout=2026-09-05&group_adults=2",
         "booking_platform": "direct",
@@ -96,12 +120,50 @@ Checks room availability for specified dates and party size, and automatically r
             "verification_status": "verified"
           }
         ],
-        "badges": ["Best Rate Guarantee", "Direct Hotel Booking"]
+        "badges": ["Only 2 units left", "Best Rate Guarantee", "Direct Hotel Booking"]
       }
     ]
   }
 }
 ```
+`max_adults`/`max_children` are the room's *actual* configured capacity — earlier versions of
+the LangGraph tool echoed back the *requested* party size in these fields instead, which
+happened to look plausible but wasn't real room data.
+
+`badges` can now include a genuine, data-backed **"Only N units left"** entry — computed from
+real active hold count vs. `total_units` for that exact room and those exact dates, only shown
+when 2 or fewer units remain. This is not a decorative urgency flourish (see the correction to
+`booking_and_reservation_flow.md` §5's prohibited-claims list, which used to list scarcity
+claims as categorically forbidden before this existed as a real, verifiable feature). Channel
+badges (`"Best Rate Guarantee"`, etc.) are appended alongside it, not replaced — a booking
+destination enrichment step used to overwrite `badges` wholesale per channel, which would have
+silently discarded any inventory badge the moment a channel badge was also assigned.
+
+### Response (`200 OK`) — no matches
+Hard filters can legitimately exclude every room. This is a distinct, typed outcome — the
+endpoint never silently falls back to returning the unfiltered catalog instead:
+```json
+{
+  "status": "success",
+  "message": "Room availability checked successfully",
+  "data": {
+    "check_in": "2026-09-01",
+    "check_out": "2026-09-05",
+    "nights": 4,
+    "available_rooms": [],
+    "no_match_context": {
+      "max_adults_in_catalog": 2,
+      "max_children_in_catalog": 1,
+      "available_view_types": ["Ocean View", "Garden View"]
+    }
+  }
+}
+```
+`no_match_context` is only populated when hard filters were actually applied and the catalog
+itself is non-empty — it's there so the calling tool (and the guest-facing UI) can offer a
+concrete next step ("our largest room sleeps 2") instead of a dead end. See `chat_gateway_api.md`'s
+`ui_payload` catalog for how this becomes the guest-facing `no_rooms_found` card, including its
+"Explore all rooms" recovery action.
 
 ---
 

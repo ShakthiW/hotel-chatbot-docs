@@ -58,11 +58,13 @@ This document tracks the complete 5-phase redesign of holaa's generative UI syst
 - [ ] Tag row (view, bed, guests, size)
 - [ ] Sensory narrative description
 - [ ] Availability indicator
-- [ ] holaa Recommendation badge
-- [ ] "Explore Room" + "Compare" CTAs
+- [x] holaa Recommendation badge — reused for a plain "Matches: ..." filter-match reason too,
+      with its own label ("Matches Your Search") so a factual filter match doesn't borrow the
+      "holaa's Recommendation" framing meant for genuine opinionated picks (2026-09-08)
+- [x] "Explore Room" + "Compare" CTAs (2026-09-08)
 - [ ] Snap-scroll with partial next-card visibility
 - [ ] Skeleton loading state
-- [ ] RoomComparisonUI (up to 3 rooms side-by-side)
+- [x] RoomComparisonUI (2026-09-08) — side-by-side table, capped at 4 rooms rather than 3
 
 ### 1.5 DiningOutletUI 2.0
 - [ ] Restaurant photography
@@ -295,8 +297,12 @@ Current event types (verified against `src/app/api/chat/route.ts`):
 - `thinking` — AI reasoning (will become ConciergeActivityUI)
 - `ui_payload` — structured widget data
 - `tool_start` / `tool_end` — tool execution lifecycle
-- `subagent_handoff` — subagent transition (note: the actual literal is `subagent_handoff`,
-  not `agent_handoff`)
+- `subagent_handoff` — subagent transition. This note used to flag a real mismatch: the
+  server emitted `subagent_handoff` but `ChatSimulator.tsx` listened for `agent_handoff`, so
+  the handoff banner in the admin preview never fired. Fixed 2026-09-07 by making the
+  listener match what's actually emitted, rather than the other way around, since
+  `subagent_handoff` is the name consistent with how the rest of this codebase refers to
+  concierge/booking/dining_spa/itinerary as "subagents."
 - `done` — stream complete
 - `error` — error
 
@@ -357,4 +363,45 @@ src/components/generative-ui/
 
 ---
 
-*Last updated: 2026-08-13*
+## 2026-09-08 Addendum: Filtering, Security & Interaction Layer
+
+A separate initiative, run alongside this component-building roadmap rather than as one of
+its numbered phases — the "Generative UI Blueprint," which audited how the generative UI
+system actually behaved in production (not just which components existed) and shipped fixes
+across four phases. Full detail lives in `booking_engine_api.md`, `chat_gateway_api.md`, and
+`widget_embed_architecture.md`; this is the summary for readers tracking overall UI progress
+from this document.
+
+**Phase 0 — Security & correctness, no visible behavior change:**
+- Deleted a dead, unused second Go chat pipeline (`completions_handler.go`) that had no caller
+- Closed a cross-tenant data risk: every LangGraph tool now trusts the request-verified
+  `configurable.propertyId` over its own optional, LLM-suppliable argument
+- Fixed an XSS gap in `widget.js`'s card renderer — tool/RAG-derived text was reaching
+  `innerHTML` unescaped, contrary to the file's own documented policy
+- Fixed the `subagent_handoff`/`agent_handoff` mismatch noted above
+- Found and fixed a real production bug along the way, not originally in scope: the Go
+  backend's rate limiter was wrapped *outside* CORS, so a rate-limited response (including a
+  CORS preflight) carried no `Access-Control-Allow-Origin` header at all — browsers report
+  that as a generic network failure with the real 429 status invisible to the caller. Reordered
+  so CORS always wraps rate limiting, and raised the default limit (2 req/sec → 10 req/sec) to
+  match what one ordinary dashboard session actually needs.
+
+**Phase 1 — Real filtering + empty state:** see `booking_engine_api.md` §1's hard-filter and
+`no_match_context` documentation above.
+
+**Phase 2 — Guest/admin parity:** `widget.js` gained the 5 card types it was previously
+missing (`attractions`, `payment_link`, `experience_timeline`, `preferences`, `human_handover`)
+and wired up room hero images via its own `safeImageUrl()`, which existed but was never called.
+
+**Phase 3 — Enhanced catalog:** comparison table, "Matches: ..." reasoning tags, real
+"Only N left" scarcity badges, per-card quick actions, live re-ranking (see
+`platform_features.md` §5), and a first accessibility pass — the chat launcher across all
+three surfaces was a `<div>` with a click handler and no keyboard affordance at all;
+role/tabindex/keydown handling, focus management, `aria-label`s, a `role="log"` live region on
+the message list, and `prefers-reduced-motion` support were added. Item 5.8 below ("Performance
+& Accessibility Audit") is still open as a fuller pass — this was scoped to the chat surfaces
+specifically, not the whole dashboard.
+
+---
+
+*Last updated: 2026-09-08*

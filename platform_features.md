@@ -187,24 +187,57 @@ The AI doesn't just return text. It returns structured `__UI__` payloads embedde
 
 | Card Component | Triggered By | What It Shows |
 |---|---|---|
-| **RoomCarouselUI** | `check_room_availability` tool | Adaptive room cards with sensory descriptions, dynamic preferred channel CTA (`Book Direct`, `Book on Booking.com`, `Book on Agoda`), multi-channel popover dropdown, and outbound click tracking. |
+| **RoomCarouselUI** | `check_room_availability` tool | Adaptive room cards, pre-sorted by sensory match score, with a "Matches: ..." reasoning tag stating which of the guest's actual stated constraints each room satisfies, real "Only N left" scarcity badges (see §6), dynamic preferred channel CTA, multi-channel popover dropdown, and per-card **Explore** / **Compare** quick actions. |
+| **RoomComparisonUI** | "Compare" quick action on any room card | Side-by-side comparison table for the rooms in that same carousel — a pure client-side render, no round-trip to the AI. |
+| **NoRoomsFoundUI** | `check_room_availability` tool, zero matches | Replaces a silent fallback to the full catalog: states plainly which filters excluded everything, offers what the catalog *does* have (largest capacity, available views), and an "Explore all rooms" action that re-asks for the unfiltered list rather than dumping it unlabeled. |
 | **RoomDetailUI** | Room card expansion | High-resolution modal with complete sensory description, dimensions, view specs, verified badges, and dynamic booking actions. |
 | **RoomInquiryModal** | Fallback / Zero-link state | Direct concierge room inquiry modal pre-populating room code, requested stay dates, guest count, and special requests. |
 | **DiningOutletUI** | `get_outlet_details` tool | Restaurant/spa cards with cuisine, dress code, dietary tags, location |
+| **DiningMenuUI** | `get_dining_menu` tool | Visual menu with dietary tags, spice level, chef-recommendation flag. |
+| **SpaTreatmentUI** | `get_dining_menu` tool (spa branch) | Treatment cards with duration, focus area, signature-therapy flag. |
 | **AttractionCardUI** | `get_destination_attractions` tool | Attraction cards with distance, transport, best time to visit, Google Maps link |
+| **WeatherExperienceUI** | Weather tool | Current conditions plus an AI narrative connecting the weather to the stay. |
+| **GuestPreferenceUI** | `save_guest_preferences` tool | Interactive stay-preference chips — click to toggle, Save composes a plain-language summary back into the conversation. Only wired to the `dining_spa` subagent today; see the note in `chat_gateway_api.md`'s `ui_payload` catalog. |
+| **PersonalRecommendationUI** | `get_personal_recommendation` tool | Opinionated single-item pick with stated match reasons. |
 | **ItineraryCardUI** | `generate_itinerary` tool | Multi-day timeline with activity cards per day, source badges, price info |
 | **ExperienceTimelineUI** | `get_experience_timeline` tool | Hour-by-hour resort timeline with crowd levels and sensory highlights |
 | **BookingHoldCardUI** | `create_room_hold` tool | Active hold confirmation with room, hold ID, 15-minute countdown (Integrated Mode) |
 | **PaymentCheckoutCardUI** | `generate_payment_link` tool | Direct checkout link, total amount, QR code, expiry |
+| **BookingConfirmationUI** | Post-checkout | "Your stay is confirmed" celebration card with reference, dates, and totals. |
+| **HumanHandoverCardUI** | `request_human_handover` tool | Live-connecting or logged-with-front-desk status, depending on the property's live-handover entitlement. |
 | **TimelineJourneyCardUI** | Custom journey flows | Visual journey progression across the guest's stay narrative |
 | **ThinkingAccordion** | Model thinking mode | Collapsible reasoning trace for transparency |
 
+### Two Renderers, One Payload Contract
+Every card above is React, rendered by `WidgetRenderer.tsx` — shared by the admin dashboard's
+Live Preview and the real in-room QR guest chat (`GuestChatWidget.tsx`). The **embeddable
+script real hotel websites actually load** (`public/widget.js`) is a completely separate,
+hand-written vanilla-JS renderer for the exact same `__UI__` payload contract, since a
+`<script>` tag embedded cross-origin on a hotel's own site can't ship a React runtime. The two
+have to be kept in sync by hand — see `widget_embed_architecture.md` for widget.js's own
+architecture and current parity status against this table.
+
+### Filtering Is Real, Not Cosmetic
+Room cards are not just a display layer over an unfiltered list. `check_room_availability`
+hard-excludes rooms that don't fit a stated party size or a specifically named view — a guest
+asking for "an ocean view room for 4" only ever sees rooms that are actually both, never a
+softened ranking of everything in the catalog. See `booking_engine_api.md` §1 for the exact
+filter semantics and the typed empty-state response guests get when nothing qualifies.
+
+### Live Re-Ranking
+A follow-up that refines the same search ("actually, something quieter") replaces the previous
+room result card in the conversation instead of stacking a second, now-stale carousel above the
+new one — implemented client-side in all three chat surfaces (`ChatSimulator.tsx`,
+`GuestChatWidget.tsx`, `widget.js`) by clearing the immediately-preceding card only when both it
+and the new one are room-search results. An unrelated card in between (dining, attractions)
+means it isn't a refinement, so an older room card is left in the transcript untouched.
+
 ### How It Works Technically
-Tool responses include a `__UI__${JSON.stringify(payload)}__UI__` sentinel. The frontend parses this pattern from SSE token streams and renders the appropriate React component inline within the conversation — while the agent's natural language text wraps around it.
+Tool responses include a `__UI__${JSON.stringify(payload)}__UI__` sentinel. The frontend parses this pattern from SSE token streams and renders the appropriate React component inline within the conversation — while the agent's natural language text wraps around it. See `chat_gateway_api.md` for the full `ui_payload` type catalog.
 
 ### Why This Is Powerful
 A guest asks: *"Show me your available rooms."*
-The agent responds with an evocative two-sentence sensory description AND renders an interactive carousel of room cards with full details. The story and the data arrive together.
+The agent responds with an evocative two-sentence sensory description AND renders an interactive carousel of room cards with full details. The story and the data arrive together — and if the guest narrows it further, the carousel narrows with them instead of piling up.
 
 ---
 

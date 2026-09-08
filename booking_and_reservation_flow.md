@@ -114,7 +114,7 @@ This table provides a transparent audit of every component in the booking subsys
 
 | Component Layer | File / Route | Implementation Description | Status |
 | :--- | :--- | :--- | :---: |
-| **Agent Tool: Check Availability** | `chatbot-demo-admin/src/lib/agent/tools/index.ts` | Calls `POST /booking/check-availability` and injects `RoomCarouselUI` with dynamic channel CTAs. | **REAL WORKING** |
+| **Agent Tool: Check Availability** | `chatbot-demo-admin/src/lib/agent/tools/index.ts` | Calls `POST /booking/check-availability` (every lookup, dated or not — no separate unfiltered path exists anymore) with hard capacity/view filters, and injects either `RoomCarouselUI` (pre-sorted by match score, with real "Only N left" badges) or a typed `no_rooms_found` card when filters exclude everything. Resolves `propertyId` from the request-verified `configurable.propertyId` first, not the model's own optional tool argument, closing a prior cross-tenant fallback risk. | **REAL WORKING** |
 | **Agent Tool: Price Breakdown** | `chatbot-demo-admin/src/lib/agent/tools/index.ts` | Calls `POST /booking/price-breakdown` and injects `PriceBreakdownCardUI` payload. | **REAL WORKING** |
 | **Agent Tool: Booking Link** | `chatbot-demo-admin/src/lib/agent/tools/index.ts` | Resolves multi-channel destinations and fallback URLs. | **REAL WORKING** |
 | **Destination Resolver Engine** | `chatbot-demo-api/pkg/channels/destination_resolver.go` | Centralized 4-tier precedence engine with parameter injection and multi-channel aggregation. | **REAL WORKING** |
@@ -145,7 +145,13 @@ Because live PMS inventory is not connected in V1 External Mode, the system prom
 
 ### Prohibited Conversational Claims:
 - ❌ *"I have reserved this room for you"*
-- ❌ *"Only 2 rooms left in live inventory"*
+- ❌ *"Only 2 rooms left in live inventory"* — **unless it's actually true.** This used to be a
+  blanket prohibition because no real inventory-pressure signal existed to say it honestly. A
+  genuine, data-backed version now exists: `check-availability` computes real active hold count
+  vs. `total_units` per room and surfaces a `"Only N units left"` badge only when 2 or fewer
+  units are truly remaining for those exact dates (see `booking_engine_api.md` §1). What's
+  still prohibited is claiming scarcity that isn't backed by that real count — a manufactured
+  urgency flourish, not a stated fact.
 - ❌ *"Your booking is 100% confirmed"*
 - ❌ *"I've placed a temporary hold on your credit card"*
 
