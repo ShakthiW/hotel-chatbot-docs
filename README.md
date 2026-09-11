@@ -22,6 +22,7 @@ Welcome to the backend REST API & AI Agent Architecture documentation for the **
 | ✨ **[Platform Feature Compendium](platform_features.md)** | Full audit of every feature across frontend + backend with storytelling context, complementary relationships, and the connected guest journey. | All Features & Omnichannel Booking |
 | 🧩 **[Embeddable Widget Architecture](widget_embed_architecture.md)** | The vanilla-JS `public/widget.js` real hotel sites embed — a separate renderer from the React admin/guest chat, its rendering parity matrix, security model, and accessibility. | `widget.js`, rendering parity, live re-ranking |
 | 🐳 **[Deployment & Infrastructure](deployment_and_infrastructure.md)** | Docker Compose stack (Postgres, Qdrant, the Go API), droplet setup, environment variables, migration/seeding behavior, and CORS/rate-limit middleware ordering. | `docker-compose.yml`, droplet setup, security middleware |
+| 🏗️ **[Multi-Tenant Provisioning & Landing-Page Theming](multi_tenant_provisioning_and_theming.md)** | End-to-end hotel onboarding, the core-app template rollout vs. landing-theme rollout pipelines, the three-way file-ownership split, the `hotel-landing-themes` library, and the super-admin dashboard controls that trigger it all. | `hotel-chatbot-onboarding`, `hotel-chatbot-rollout-pipeline`, `hotel-landing-themes`, `SetWebsiteTheme`, `theme-rollout.yml` |
 
 ---
 

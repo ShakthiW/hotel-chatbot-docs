@@ -276,6 +276,26 @@ http://localhost:8080/api/v1
 * **Authentication**: Required — staff JWT scoped to this property.
 * **Description**: Deletes property and cascades deletion to all associated room types, outlets, media, stories, attractions, seasons, events, and bot config.
 
+#### 6. Set Website Theme
+* **HTTP Method**: `PUT`
+* **Path**: `/api/v1/admin/properties/{id}/website-theme`
+* **Authentication**: Required — admin-secret or super-admin JWT.
+* **Request Body**:
+```json
+{
+  "website_theme": "theme-2",
+  "website_theme_version": "v1.3.0"
+}
+```
+* **Description**: Records which landing-page theme (and pinned version — a tag or commit in
+  `Standord-AI/hotel-landing-themes`, never `"main"`) this property has. Both fields must be
+  set together or both left empty (empty means no theme / the default holaa marketing page).
+  This endpoint **only records intent** — it does not push any files to the tenant's repo;
+  actually installing/updating the theme is a separate pipeline trigger
+  (`POST /api/v1/admin/pipelines/theme-rollout/trigger`). See
+  [Multi-Tenant Provisioning & Landing-Page Theming](multi_tenant_provisioning_and_theming.md)
+  for the full theme install/rollout architecture.
+
 ---
 
 ### B. Room Types & Sensory Experiences (`/api/v1/properties/{id}/rooms`)
