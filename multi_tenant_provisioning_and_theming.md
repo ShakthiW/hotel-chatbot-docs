@@ -206,6 +206,20 @@ data through a different, honest component (e.g. a tabbed dining panel over real
 2. `theme.css` defines the shadcn color tokens (`--background`, `--primary`, `--accent`, …)
    plus `--font-heading`; `globals.css` stays a colorless fallback so there is exactly one
    source of truth per theme.
+
+   > **This only works because `chatbot-demo-admin`'s `globals.css` registers those same
+   > token names inside an `@theme inline` block** (`--color-primary: var(--primary)`, etc.,
+   > plus `--font-heading`) — Tailwind v4 only generates a `bg-primary`/`font-heading`/etc.
+   > utility class for a token declared inside `@theme`; a bare `:root { --primary: ...; }` is
+   > just an ordinary CSS variable to it, invisible to class generation. This mapping was
+   > missing on the real template for most of this project's history (dropped right after the
+   > original shadcn-init commit), so every theme validated fine in this repo's own preview
+   > harness — which has the correct mapping — while rendering completely unstyled the moment
+   > it was actually installed on a real tenant. If a theme you're building looks right in
+   > `pnpm preview` but you want to be sure it'll look right for real, verify against a local
+   > checkout of `chatbot-demo-admin` (copy the theme's files in exactly like
+   > `theme_rollout.py` does), not just this repo.
+
 3. `pnpm preview <slug>` → `tsc --noEmit` → `pnpm build` → visually check every section in a
    browser with the backend unreachable (confirms empty states) before considering it done.
 
