@@ -94,6 +94,15 @@ sequenceDiagram
   2. If an active session exists, it calls `GET /api/v1/properties/{id}/chat-sessions/{sessionKey}/messages` to restore the conversation history seamlessly.
   3. When the guest clicks "New Chat", a fresh `sessionKey` is generated in `localStorage`, resetting the dialogue while preserving the guest's long-term memory.
 - **Anonymous Session Binding**: When an unauthenticated session guest discloses their identity (email, phone, name), the short-term preferences and intent automatically merge into their permanent `GuestProfile`.
+- > **Correction, verified during the WhatsApp integration build (see `whatsapp_integration_api.md`)**:
+  > the mechanism described above (`bindGuestIdToSession` / `POST /api/memory/bind`, §4.4 below)
+  > has **zero callers anywhere in the actual guest-facing frontend** — no component, no tool,
+  > fetches that route. Every `models.GuestProfile{}` construction in the Go backend was grepped
+  > directly; the only one is inside `BindSessionToGuest` (§5.3), reachable only through the dead
+  > route above. In practice, `GuestProfile` has had no live writer at all on the web side —
+  > this section describes designed, still-correct behavior that has simply never fired in
+  > production. The WhatsApp integration's `FindOrCreateGuestByPhone` (§5.5 below) is the first
+  > real writer this table has ever had.
 
 ---
 
@@ -255,3 +264,14 @@ rehydrate historical preferences (dietary tags, preferred view, past special req
   }
 }
 ```
+
+### 5.5 Find or Create Guest by Phone (internal function, not an HTTP route)
+Unlike §5.1–5.4, this is a plain Go function
+(`FindOrCreateGuestByPhone(db, propertyID, phone)` in
+`controllers/memory-controller/memory_handler.go`) called directly from the WhatsApp inbound
+webhook receiver — see `whatsapp_integration_api.md` §2.1 for the full picture. It's the actual,
+live writer to `GuestProfile` that §3's correction above is about: every WhatsApp guest's first
+message creates a real row here, keyed by `(property_id, phone)` and guarded by a partial
+unique index on that pair to stay race-safe under at-least-once webhook delivery. Property-scoped,
+same as everything else in this table — the same phone number at two different properties
+resolves to two separate rows, never merged.

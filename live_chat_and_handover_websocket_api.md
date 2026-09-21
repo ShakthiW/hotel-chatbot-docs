@@ -132,6 +132,25 @@ stateDiagram-v2
 3. **`human_active`**: A staff operator has accepted the session. The AI agent pauses inference on that thread, and all messages route directly between guest and human operator via WebSocket.
 4. **`resolved`**: Live assistance concluded. The conversation is archived and memory extraction updates the guest profile.
 
+> **WhatsApp sessions (`channel: "whatsapp"`) follow this same state machine, with two real
+> differences** — see `whatsapp_integration_api.md` §5 for the full picture:
+> - **Where the AI-pause is actually enforced.** For `channel: "web_chat"`, "the AI agent pauses
+>   inference" is a property of how the web widget's own route is wired. For WhatsApp, the pause
+>   is a hard gate in `chatbot-demo-api`'s inbound webhook receiver — it checks `session_mode`
+>   before ever forwarding a message to the agent, so a guest's follow-up message while
+>   `handover_requested`/`human_active` is persisted but genuinely never reaches the LLM.
+> - **Not every handover request flips the mode.** `request_human_handover` only triggers
+>   `handover_requested` when the property has `liveHandoverEnabled` (the tool's `"connecting"`
+>   outcome). A Starter/Discover property gets the tool's `"logged"` outcome instead, and the
+>   session mode is deliberately left untouched — that property has no `handback` access either
+>   (both are gated behind the same entitlement), so flipping the mode there would strand the
+>   guest with no way for anyone to ever resume the AI.
+> - **No WebSocket relay exists for WhatsApp yet.** "All messages route directly... via
+>   WebSocket" in point 3 above is web-widget-specific. A `human_active` WhatsApp session has no
+>   staff-facing UI to type a reply into — the Social Inbox that would provide one isn't built.
+>   Today, the only way to move a WhatsApp session back out of `human_active` (or
+>   `handover_requested`) is a direct, staff-authenticated call to §5.6's `handback` endpoint.
+
 ---
 
 ## 🔒 4. Staff Internal Whispers (Private Notes)
